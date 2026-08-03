@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{Java Code Analysis & Optimization}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pastel-purple': '#C084FC',
+                        'dark-bg': '#0F172A',
+                        'panel-bg': '#1E293B'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-dark-bg text-gray-100 min-h-screen font-sans antialiased">
+
+<!-- Top Navigation Bar -->
+<nav class="border-b border-gray-800 bg-slate-900/80 backdrop-blur px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+    <div class="flex items-center space-x-2">
+        <span class="text-2xl font-bold text-pastel-purple font-mono">CurlyBraces</span>
+    </div>
+
+    <!-- Dynamic Auth State Container -->
+    <div id="authContainer" class="flex items-center space-x-3">
+        <!-- Populated dynamically via app.js -->
+    </div>
+</nav>
+
+<!-- Main Content Grid -->
+<main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+    <!-- Left Column: Code Input, Refactored Code & History (7 cols) -->
+    <section class="lg:col-span-7 space-y-6">
+
+        <!-- Java Code Input Box -->
+        <div class="bg-panel-bg p-6 rounded-xl border border-gray-800 shadow-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-purple-300">Java Code Input</h2>
+                <button onclick="loadSampleCode()" class="text-xs text-pastel-purple hover:underline">Load O(N²) Sample</button>
+            </div>
+
+            <input type="text" id="snippetTitle" placeholder="Snippet Title (e.g., Two Sum Solution)"
+                   class="w-full mb-3 bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-200 focus:outline-none focus:border-pastel-purple">
+
+            <textarea id="codeEditor" rows="12" placeholder="Paste your Java code here..."
+                      class="w-full bg-gray-900 border border-gray-700 rounded-lg p-4 font-mono text-sm text-green-400 focus:outline-none focus:border-pastel-purple resize-y"></textarea>
+
+            <button
+                    id="analyzeBtn"
+                    onclick="handleAnalysis()"
+                    class="relative inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-75 disabled:cursor-not-allowed transition-all shadow-md active:scale-95 mt-2"
+            >
+                <!-- Normal State -->
+                <span id="btnText" class="inline-flex items-center gap-2">
+                    <span>Analyze Code</span>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </span>
+
+                <!-- Loading State (Hidden by default) -->
+                <span id="btnLoader" class="hidden inline-flex items-center gap-2">
+                    <!-- Animated Goofy Curly Braces -->
+                    <span class="font-mono text-lg font-bold tracking-tighter text-yellow-300 animate-bounce">
+                      {<span class="inline-block animate-ping text-indigo-200">..</span>}
+                    </span>
+
+                    <!-- Cycling Goofy / Technical Text -->
+                    <span id="loaderText" class="font-mono text-sm tracking-wide text-indigo-100 min-w-[180px] text-left">
+                      Parsing AST...
+                    </span>
+                </span>
+            </button>
+        </div>
+
+        <!-- Suggested Refactored Code (Moved right below code input & enlarged) -->
+        <div class="bg-panel-bg p-6 rounded-xl border border-gray-800 shadow-lg space-y-3">
+            <h2 class="text-lg font-semibold text-purple-300">Suggested Refactored Code</h2>
+            <pre id="refactoredOutput" class="bg-gray-900 p-4 rounded-lg border border-gray-800 font-mono text-sm text-emerald-300 overflow-x-auto max-h-96 min-h-[160px] leading-relaxed">// Refactored output will appear here after analysis...</pre>
+        </div>
+
+        <!-- Past Submissions History Table -->
+        <div class="bg-panel-bg p-6 rounded-xl border border-gray-800 shadow-lg">
+            <h2 class="text-lg font-semibold text-purple-300 mb-4">Saved Submissions History</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-gray-400">
+                    <thead class="bg-gray-900 text-gray-300 uppercase text-xs">
+                    <tr>
+                        <th class="p-3">Title</th>
+                        <th class="p-3">Score</th>
+                        <th class="p-3">Complexity</th>
+                        <th class="p-3">Cyclomatic</th>
+                        <th class="p-3">Date</th>
+                        <th class="p-3">Action</th>
+                    </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                    <tr>
+                        <td colspan="6" class="p-4 text-center text-gray-500">Log in to view your saved code history.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Right Column: Results & Progress (5 cols) -->
+    <section class="lg:col-span-5 space-y-6">
+
+        <!-- Analysis Metrics Summary -->
+        <div class="bg-panel-bg p-6 rounded-xl border border-gray-800 shadow-lg space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-purple-300">Analysis Results</h2>
+                <span id="scoreBadge" class="px-3 py-1 rounded-full text-xs font-medium bg-gray-800 text-gray-400 border border-gray-700">Pending Run</span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div class="bg-gray-900 p-3 rounded-lg border border-gray-800">
+                    <span class="text-xs text-gray-400 block">Overall Score</span>
+                    <span id="scoreVal" class="text-xl font-bold text-pastel-purple">--</span>
+                </div>
+                <div class="bg-gray-900 p-3 rounded-lg border border-gray-800">
+                    <span class="text-xs text-gray-400 block">Time Complexity</span>
+                    <span id="tcVal" class="text-xl font-bold text-emerald-400">--</span>
+                </div>
+                <div class="bg-gray-900 p-3 rounded-lg border border-gray-800">
+                    <span class="text-xs text-gray-400 block">Cyclomatic</span>
+                    <span id="ccVal" class="text-xl font-bold text-amber-400">--</span>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-medium text-gray-300 mb-2">Code Feedback & Warnings:</h3>
+                <ul id="suggestionsList" class="space-y-2 text-xs">
+                    <li class="p-2 bg-gray-900 rounded border border-gray-800 text-gray-500">Run code analysis to view recommendations.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Quality Progress Graph -->
+        <div class="bg-panel-bg p-6 rounded-xl border border-gray-800 shadow-lg">
+            <h2 class="text-lg font-semibold text-purple-300 mb-2">Code Quality Progress</h2>
+            <p class="text-xs text-gray-400 mb-4">Tracks your overall code quality score improvement across consecutive submissions.</p>
+            <div class="h-48">
+                <canvas id="growthChart"></canvas>
+            </div>
+        </div>
+
+    </section>
+</main>
+
+<!-- Auth Modal -->
+<div id="authModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="bg-panel-bg p-6 rounded-xl border border-gray-700 w-full max-w-md shadow-2xl space-y-4">
+        <div class="flex justify-between items-center">
+            <h3 id="modalTitle" class="text-lg font-bold text-pastel-purple">Welcome Back</h3>
+            <button onclick="closeAuthModal()" class="text-gray-400 hover:text-white">&times;</button>
+        </div>
+
+        <form onsubmit="handleAuth(event)" class="space-y-3">
+            <input type="text" id="authUsername" placeholder="Username" required
+                   class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-200 focus:outline-none focus:border-pastel-purple">
+            <input type="email" id="authEmail" placeholder="Email Address" class="hidden w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-200 focus:outline-none focus:border-pastel-purple">
+            <input type="password" id="authPassword" placeholder="Password" required
+                   class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-200 focus:outline-none focus:border-pastel-purple">
+
+            <button type="submit" class="w-full bg-pastel-purple hover:bg-purple-400 text-slate-950 font-bold py-2 rounded-lg transition">
+                Submit
+            </button>
+        </form>
+
+        <button onclick="toggleAuthMode()" id="toggleAuthBtn" class="text-xs text-gray-400 hover:text-pastel-purple w-full text-center block">
+            Need an account? Register
+        </button>
+    </div>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
